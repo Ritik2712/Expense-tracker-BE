@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from Service.AccountService import AccountService
@@ -48,8 +48,8 @@ def create_account_router(account_service: AccountService, orchestrator_service:
 
     @account_router.get("")
     def get_accounts(
-        page: int = 1,
-        limit: int = 10,
+        page: int = Query(1, ge=1),
+        limit: int = Query(10, ge=1, le=100),
         user: User = Depends(get_current_user),
     ):
         try:

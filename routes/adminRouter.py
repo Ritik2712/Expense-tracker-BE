@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from Service.AccountService import AccountService
 from Service.TransactionService import TransactionService
@@ -37,8 +37,8 @@ def create_admin_router(
 
     @admin_router.get("/users")
     def get_all_users(
-        page: int = 1,
-        limit: int = 10,
+        page: int = Query(1, ge=1),
+        limit: int = Query(10, ge=1, le=100),
     ):
         try:
             allusers = user_service.get_all_users(page=page, limit=limit)

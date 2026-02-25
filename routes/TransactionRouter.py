@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from Service.TransactionService import TransactionService
@@ -88,8 +88,8 @@ def create_transaction_router(
     def get_transactions(
         account_id: UUID,
         user_id: UUID,
-        page: int = 1,
-        limit: int = 10,
+        page: int = Query(1, ge=1),
+        limit: int = Query(10, ge=1, le=100),
         current_user: User = Depends(get_current_user),
     ):
         try:
@@ -117,8 +117,8 @@ def create_transaction_router(
     @transaction_router.get("/user/all")
     def get_transactions_for_user(
         user_id: UUID,
-        page: int = 1,
-        limit: int = 10,
+        page: int = Query(1, ge=1),
+        limit: int = Query(10, ge=1, le=100),
         current_user: User = Depends(get_current_user),
     ):
         try:

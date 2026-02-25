@@ -68,13 +68,15 @@ class TransactionService:
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                """
-                SELECT id ,account_id,description,amount,transaction_type
-                FROM transactions t JOIN accounts a on  account_id=%s a and a.user_id= userId 
-                ORDER BY id
-                LIMIT %s OFFSET %s
-                """,
-                (account_id, limit, offset)
+                    """
+                    SELECT t.id, t.account_id, t.description, t.amount, t.transaction_type
+                    FROM transactions t
+                    JOIN accounts a ON t.account_id = a.id
+                    WHERE t.account_id = %s AND a.user_id = %s
+                    ORDER BY t.id
+                    LIMIT %s OFFSET %s
+                    """,
+                    (account_id, user_id, limit, offset),
                 )
                 rows = cur.fetchall()
 
