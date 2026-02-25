@@ -1,19 +1,19 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from Service.AuthService import AuthService
 from utils.auth import create_access_token
 
 class LoginRequest(BaseModel):
-    name:str
-    password:str
+    name: str = Field(min_length=3, max_length=50)
+    password: str = Field(min_length=6, max_length=128)
 
 class RegisterRequest(BaseModel):
-    name:str
-    password:str
+    name: str = Field(min_length=3, max_length=50)
+    password: str = Field(min_length=6, max_length=128)
 
 class AdminRegisterRequest(BaseModel):
-    name: str
-    password: str
+    name: str = Field(min_length=3, max_length=50)
+    password: str = Field(min_length=6, max_length=128)
 
 
 

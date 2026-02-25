@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import UUID
 
 
@@ -9,11 +9,11 @@ from Schemas.User import User
 from utils.auth import get_current_user
 
 class UserRequest(BaseModel):
-    name:str
-    password:str
+    name: str = Field(min_length=3, max_length=50)
+    password: str = Field(min_length=6, max_length=128)
 
 class UpdateUserRequest(BaseModel):
-    name:str
+    name: str = Field(min_length=3, max_length=50)
 
 
 

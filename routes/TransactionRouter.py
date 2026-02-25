@@ -1,6 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from Service.TransactionService import TransactionService
 from Schemas.User import User
@@ -8,16 +8,16 @@ from utils.auth import get_current_user
 
 
 class CreateTransactionRequest(BaseModel):
-    amount: float
-    transaction_type: str
-    description: str
+    amount: float = Field(ge=0)
+    transaction_type: str = Field(min_length=3, max_length=20)
+    description: str = Field(min_length=1, max_length=300)
     account_id: UUID
 
 
 class UpdateTransactionRequest(BaseModel):
-    amount: float
-    transaction_type: str
-    description: str
+    amount: float = Field(ge=0)
+    transaction_type: str = Field(min_length=3, max_length=20)
+    description: str = Field(min_length=1, max_length=300)
     account_id: UUID
 
 

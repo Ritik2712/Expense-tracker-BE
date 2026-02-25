@@ -1,6 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from Service.AccountService import AccountService
 from Service.OrchestratorService import OrchestratorService
@@ -9,12 +9,12 @@ from utils.auth import get_current_user
 
 
 class CreateAccountRequest(BaseModel):
-    name: str
+    name: str = Field(min_length=3, max_length=50)
 
 
 class UpdateAccountRequest(BaseModel):
-    name: str
-    balance: float
+    name: str = Field(min_length=3, max_length=50)
+    balance: float = Field(ge=0)
 
 
 def create_account_router(account_service: AccountService, orchestrator_service: OrchestratorService) -> APIRouter:

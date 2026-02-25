@@ -7,9 +7,16 @@ from Schemas.User import User
 from exceptions import AdminAccessDenied, InvalidToken, NoRoleError, TokenNotProvide, UserNotFoundError
 from utils.db import get_connection
 
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 100
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+if(not SECRET_KEY or not ALGORITHM or not ACCESS_TOKEN_EXPIRE_MINUTES):
+    raise RuntimeError("ENV not set")
 
 def create_access_token(data: dict):
     if "role" not in data or not data["role"]:
