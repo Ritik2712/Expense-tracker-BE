@@ -3,7 +3,6 @@ from Schemas.User import User
 from exceptions import (
     UserAlreadyExistsError,
     UserNotFoundError,
-    InvalidCredentialsError,
 )
 from utils.db import get_connection
 from utils.security import hash_password, verify_password

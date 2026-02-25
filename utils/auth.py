@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from Schemas.User import User
+from exceptions import AdminAccessDenied, InvalidToken, NoRoleError, TokenNotProvide, UserNotFoundError
 from utils.db import get_connection
 
 SECRET_KEY = "your-secret-key"
@@ -12,7 +13,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 100
 
 def create_access_token(data: dict):
     if "role" not in data or not data["role"]:
-        raise HTTPException(status_code=400, detail="Role is required in token")
+        raise NoRoleError()
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
@@ -27,12 +28,12 @@ def get_current_user(
 ):
     token = credentials.credentials  # actual JWT string
     if not token:
-        raise HTTPException(status_code=401, detail="No token provided")
+        raise TokenNotProvide()
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
+            raise InvalidToken()
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -46,15 +47,15 @@ def get_current_user(
 
                 row = cur.fetchone()
                 if not row:
-                    raise HTTPException(status_code=401, detail="User not found")
+                    raise UserNotFoundError(user_id)
                 return User(name=row[1],role=row[2],id=row[0])
 
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise InvalidToken()
 
 def require_role(required_role: str):
     def role_checker(current_user=Depends(get_current_user)):
         if current_user.role != required_role:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise AdminAccessDenied()
         return current_user
     return role_checker

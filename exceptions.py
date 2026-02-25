@@ -72,3 +72,25 @@ class InvalidTransaction(TransactionError):
         super().__init__(
             f"Transaction failed because {message}"
         )
+
+class AuthError(Exception):
+    """Base class for all account-related errors."""
+    pass
+
+class AdminAccessDenied(AuthError):
+    def __init__(self) -> None:
+        super().__init__(f"Only admins are allowed to access the routes")
+
+class NoRoleError(AuthError):
+    def __init__(self) -> None:
+        super().__init__("Role is required in token")
+
+class InvalidToken(AuthError):
+    def __init__(self) -> None:
+        super().__init__("Invalid or expired token")
+
+
+class TokenNotProvide(AuthError):
+    def __init__(self) -> None:
+        super().__init__("No Token was provided")
+

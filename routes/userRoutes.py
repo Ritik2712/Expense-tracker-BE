@@ -6,7 +6,6 @@ from uuid import UUID
 from Service.OrchestratorService import OrchestratorService
 from Service.UserService import UserService
 from Schemas.User import User
-from exceptions import AccountNotFoundError, InvalidCredentialsError, TransactionNotFoundError, UserAlreadyExistsError, UserNotFoundError
 from utils.auth import get_current_user
 
 class UserRequest(BaseModel):
@@ -33,36 +32,24 @@ def create_user_router(user_service: UserService,orchestrator_service: Orchestra
         req: UpdateUserRequest,
         current_user: User = Depends(get_current_user),
     ):
-        try:
-            if str(id) != current_user.id:
-                raise HTTPException(
-                    status_code=403,
-                    detail={"message": "You can't update this user"},
-                )
-            updated_user = user_service.update_user(str(id),req.name)
-            return updated_user
-        except UserNotFoundError as e:
-            raise HTTPException(status_code=404, detail={"message":str(e)}) 
-        except UserAlreadyExistsError as e:
-            raise HTTPException(status_code=400, detail={"message":str(e)})
+        if str(id) != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail={"message": "You can't update this user"},
+            )
+        updated_user = user_service.update_user(str(id),req.name)
+        return updated_user
     
     @user_router.delete("/{id}",status_code=204)
     def delete_user(
         id: UUID,
         current_user: User = Depends(get_current_user),
     ):
-        try:
-            if str(id) != current_user.id:
-                raise HTTPException(
-                    status_code=403,
-                    detail={"message": "You can't delete this user"},
-                )
-            user_service.delete_user(str(id))
-        except UserNotFoundError as e:
-            raise HTTPException(status_code=404, detail={"message":str(e)}) 
-        except AccountNotFoundError as e:
-            raise HTTPException(status_code=404, detail={"message":str(e)}) 
-        except TransactionNotFoundError as e:
-            raise HTTPException(status_code=404, detail={"message":str(e)}) 
+        if str(id) != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail={"message": "You can't delete this user"},
+            )
+        user_service.delete_user(str(id))
     
     return user_router
