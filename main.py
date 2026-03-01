@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pathlib import Path
 from slowapi.errors import RateLimitExceeded
 from time import perf_counter
 
@@ -33,6 +34,7 @@ from routes.adminRouter import create_admin_router
 from routes.loginRouter import create_auth_router
 from routes.userRoutes import create_user_router
 from utils.logging_config import get_logger, setup_logging
+from utils.db import get_connection
 from utils.rate_limiter import limiter
 
 setup_logging()
@@ -60,6 +62,20 @@ account_service = AccountService()
 auth_service = AuthService()
 transaction_service = TransactionService(account_service)
 orchestrator_service = OrchestratorService(user_service,account_service,transaction_service)
+
+
+@app.on_event("startup")
+def apply_schema_on_startup() -> None:
+    schema_path = Path(__file__).resolve().parent / "schema.sql"
+    if not schema_path.exists():
+        logger.warning("schema file not found, skipping auto-apply path=%s", schema_path)
+        return
+
+    sql = schema_path.read_text(encoding="utf-8")
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+    logger.info("database schema applied successfully path=%s", schema_path)
 
 
 def _error_payload(message: str) -> dict:
