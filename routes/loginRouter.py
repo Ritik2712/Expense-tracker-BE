@@ -1,9 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 from Service.AuthService import AuthService
 from utils.auth import create_access_token
 from utils.logging_config import get_logger
+from utils.rate_limiter import limiter
 
 
 class LoginRequest(BaseModel):
@@ -28,7 +29,8 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
     auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
     @auth_router.post("", status_code=201)
-    def register_user(req: RegisterRequest):
+    @limiter.limit("10/minute")
+    def register_user(request: Request, req: RegisterRequest):
         user = auth_service.register_user(req.name, req.password, "user")
         token = create_access_token({"sub": user.id, "name": user.name, "role": user.role})
         logger.info("action=auth.register_user status=success")
@@ -38,7 +40,8 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
         }
 
     @auth_router.post("/admin", status_code=201)
-    def register_admin(req: AdminRegisterRequest):
+    @limiter.limit("3/minute")
+    def register_admin(request: Request, req: AdminRegisterRequest):
         user = auth_service.register_user(req.name, req.password, "admin")
         token = create_access_token({"sub": user.id, "name": user.name, "role": user.role})
         logger.info("action=auth.register_admin status=success")
@@ -53,7 +56,8 @@ def create_auth_router(auth_service: AuthService) -> APIRouter:
         }
 
     @auth_router.post("/login")
-    def login_user(req: LoginRequest):
+    @limiter.limit("5/minute")
+    def login_user(request: Request, req: LoginRequest):
         user = auth_service.login_user(req.name, req.password)
         token = create_access_token({"sub": user.id, "name": user.name, "role": user.role})
         logger.info("action=auth.login status=success")

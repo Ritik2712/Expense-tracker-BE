@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 from time import perf_counter
 
 from Service.AuthService import AuthService
@@ -19,6 +20,7 @@ from exceptions import (
     InvalidTransactionTypeError,
     InvalidUserType,
     NoRoleError,
+    RateLimitExceededError,
     TokenNotProvide,
     TransactionAccountMismatchError,
     TransactionNotFoundError,
@@ -31,10 +33,12 @@ from routes.adminRouter import create_admin_router
 from routes.loginRouter import create_auth_router
 from routes.userRoutes import create_user_router
 from utils.logging_config import get_logger, setup_logging
+from utils.rate_limiter import limiter
 
 setup_logging()
 logger = get_logger(__name__)
 app = FastAPI()
+app.state.limiter = limiter
 
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -72,7 +76,7 @@ def _client_ip(request: Request) -> str:
 
 
 def _log_exception(request: Request, status_code: int, message: str) -> None:
-    if status_code in (401, 403):
+    if status_code in (401, 403, 429):
         logger.warning(
             "error status=%s path=%s ip=%s message=%s",
             status_code,
@@ -188,6 +192,13 @@ async def handle_no_token(request: Request,exec: TokenNotProvide):
 async def handle_no_role(request: Request,exec: NoRoleError):
     _log_exception(request, 401, str(exec))
     return JSONResponse(status_code=401, content=_error_payload(str(exec)))
+
+
+@app.exception_handler(RateLimitExceeded)
+async def handle_rate_limit_exceeded(request: Request, exc: RateLimitExceeded):
+    custom_exc = RateLimitExceededError()
+    _log_exception(request, 429, str(custom_exc))
+    return JSONResponse(status_code=429, content=_error_payload(str(custom_exc)))
 
 
 @app.exception_handler(HTTPException)

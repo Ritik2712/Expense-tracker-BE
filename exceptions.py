@@ -94,3 +94,7 @@ class TokenNotProvide(AuthError):
     def __init__(self) -> None:
         super().__init__("No Token was provided")
 
+
+class RateLimitExceededError(AuthError):
+    def __init__(self) -> None:
+        super().__init__("Too many requests. Please try again later.")
