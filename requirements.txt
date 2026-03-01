@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+psycopg2-binary
+bcrypt
+python-jose[cryptography]
+slowapi

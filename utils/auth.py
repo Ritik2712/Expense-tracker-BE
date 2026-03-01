@@ -14,7 +14,7 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
-expire_raw = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+expire_raw = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
 if(not SECRET_KEY or not ALGORITHM or not expire_raw):
     raise RuntimeError("ENV not set")
 
