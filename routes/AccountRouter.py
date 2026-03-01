@@ -6,6 +6,7 @@ from Service.AccountService import AccountService
 from Service.OrchestratorService import OrchestratorService
 from Schemas.User import User
 from utils.auth import get_current_user
+from utils.logging_config import get_logger
 
 
 class CreateAccountRequest(BaseModel):
@@ -17,6 +18,9 @@ class UpdateAccountRequest(BaseModel):
     balance: float = Field(ge=0)
 
 
+logger = get_logger(__name__)
+
+
 def create_account_router(account_service: AccountService, orchestrator_service: OrchestratorService) -> APIRouter:
     account_router = APIRouter(prefix="/accounts")
 
@@ -26,6 +30,7 @@ def create_account_router(account_service: AccountService, orchestrator_service:
         user: User = Depends(get_current_user),
     ):
         account = account_service.create_account(user.id, req.name)
+        logger.info("action=accounts.create status=success")
         return {
             "message": "account created successfully",
             "account": {
@@ -46,6 +51,7 @@ def create_account_router(account_service: AccountService, orchestrator_service:
             page=page,
             limit=limit,
         )
+        logger.info("action=accounts.list status=success")
         return [
             {
                 "id": acc.id,
@@ -67,6 +73,7 @@ def create_account_router(account_service: AccountService, orchestrator_service:
             account_id=account_id,
             account_name=req.name,
         )
+        logger.info("action=accounts.update status=success")
         return {"message": "account updated successfully"}
 
     @account_router.delete("/{account_id}", status_code=204)
@@ -75,5 +82,6 @@ def create_account_router(account_service: AccountService, orchestrator_service:
         user: User = Depends(get_current_user),
     ):
         account_service.deleteAccount(user.id, account_id)
+        logger.info("action=accounts.delete status=success")
 
     return account_router

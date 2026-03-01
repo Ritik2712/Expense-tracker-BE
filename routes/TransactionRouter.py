@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from Service.TransactionService import TransactionService
 from Schemas.User import User
 from utils.auth import get_current_user
+from utils.logging_config import get_logger
 
 
 class CreateTransactionRequest(BaseModel):
@@ -19,6 +20,9 @@ class UpdateTransactionRequest(BaseModel):
     transaction_type: str = Field(min_length=3, max_length=20)
     description: str = Field(min_length=1, max_length=300)
     account_id: UUID
+
+
+logger = get_logger(__name__)
 
 
 def create_transaction_router(
@@ -40,7 +44,8 @@ def create_transaction_router(
             account_id=str(req.account_id),
             user_id=str(user_id),
         )
-        return {"message": "transaction created successfully", "Transaction":new_transaction}
+        logger.info("action=transactions.create status=success")
+        return {"message": "transaction created successfully", "Transaction": new_transaction}
 
     @transaction_router.get("/{transaction_id}")
     def get_transaction(
@@ -49,7 +54,8 @@ def create_transaction_router(
         account_id: UUID,
         current_user: User = Depends(get_current_user),
     ):
-        tx = transaction_service.get_transaction_by_id(str(transaction_id), str(user_id),str(account_id))
+        tx = transaction_service.get_transaction_by_id(str(transaction_id), str(user_id), str(account_id))
+        logger.info("action=transactions.get_one status=success")
         return {
             "transaction": {
                 "id": tx.id,
@@ -71,6 +77,7 @@ def create_transaction_router(
         transactions = transaction_service.get_transactions_by_account(
             str(account_id), str(user_id), page=page, limit=limit
         )
+        logger.info("action=transactions.list_by_account status=success")
         return [
             {
                 "id": tx.id,
@@ -92,6 +99,7 @@ def create_transaction_router(
         transactions = transaction_service.get_transactions_by_user(
             str(user_id), page=page, limit=limit
         )
+        logger.info("action=transactions.list_by_user status=success")
         return [
             {
                 "id": tx.id,
@@ -118,6 +126,7 @@ def create_transaction_router(
             account_id=str(req.account_id),
             user_id=str(user_id),
         )
+        logger.info("action=transactions.update status=success")
         return {"message": "transaction updated successfully"}
 
     @transaction_router.delete("/{transaction_id}", status_code=204)
@@ -130,5 +139,6 @@ def create_transaction_router(
             user_id=str(user_id),
             transaction_id=str(transaction_id),
         )
+        logger.info("action=transactions.delete status=success")
 
     return transaction_router
