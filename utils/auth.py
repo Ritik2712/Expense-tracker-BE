@@ -14,9 +14,14 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
-if(not SECRET_KEY or not ALGORITHM or not ACCESS_TOKEN_EXPIRE_MINUTES):
+expire_raw = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+if(not SECRET_KEY or not ALGORITHM or not expire_raw):
     raise RuntimeError("ENV not set")
+
+try:
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(expire_raw)
+except ValueError:
+    raise RuntimeError("ACCESS_TOKEN_EXPIRE_MINUTES must be an integer")
 
 def create_access_token(data: dict):
     if "role" not in data or not data["role"]:
