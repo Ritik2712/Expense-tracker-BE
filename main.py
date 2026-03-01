@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pathlib import Path
+from psycopg2.errors import CheckViolation
 from slowapi.errors import RateLimitExceeded
 from time import perf_counter
 
@@ -217,6 +218,22 @@ async def handle_no_token(request: Request,exec: TokenNotProvide):
 async def handle_no_role(request: Request,exec: NoRoleError):
     _log_exception(request, 401, str(exec))
     return JSONResponse(status_code=401, content=_error_payload(str(exec)))
+
+
+@app.exception_handler(CheckViolation)
+async def handle_check_violation(request: Request, exc: CheckViolation):
+    constraint = getattr(getattr(exc, "diag", None), "constraint_name", "")
+    if constraint == "transactions_type_check":
+        message = "Invalid transaction type. Expected Income, Expense, or Cross."
+    elif constraint == "transactions_amount_non_negative":
+        message = "Transaction amount must be non-negative."
+    elif constraint == "accounts_balance_non_negative":
+        message = "Insufficient balance for this expense transaction."
+    else:
+        message = "Database constraint violation."
+
+    _log_exception(request, 400, message)
+    return JSONResponse(status_code=400, content=_error_payload(message))
 
 
 @app.exception_handler(RateLimitExceeded)
