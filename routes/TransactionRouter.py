@@ -33,7 +33,6 @@ def create_transaction_router(
 
     @transaction_router.post("", status_code=201)
     def create_transaction(
-        user_id: UUID,
         req: CreateTransactionRequest,
         current_user: User = Depends(get_current_user),
     ):
@@ -42,7 +41,7 @@ def create_transaction_router(
             transaction_type=req.transaction_type,
             description=req.description,
             account_id=str(req.account_id),
-            user_id=str(user_id),
+            user_id=str(current_user.id),
         )
         logger.info("action=transactions.create status=success")
         return {"message": "transaction created successfully", "Transaction": new_transaction}
@@ -50,11 +49,10 @@ def create_transaction_router(
     @transaction_router.get("/{transaction_id}")
     def get_transaction(
         transaction_id: UUID,
-        user_id: UUID,
         account_id: UUID,
         current_user: User = Depends(get_current_user),
     ):
-        tx = transaction_service.get_transaction_by_id(str(transaction_id), str(user_id), str(account_id))
+        tx = transaction_service.get_transaction_by_id(str(transaction_id), str(current_user.id), str(account_id))
         logger.info("action=transactions.get_one status=success")
         return {
             "transaction": {
@@ -69,13 +67,12 @@ def create_transaction_router(
     @transaction_router.get("")
     def get_transactions(
         account_id: UUID,
-        user_id: UUID,
         page: int = Query(1, ge=1),
         limit: int = Query(10, ge=1, le=100),
         current_user: User = Depends(get_current_user),
     ):
         transactions = transaction_service.get_transactions_by_account(
-            str(account_id), str(user_id), page=page, limit=limit
+            str(account_id), str(current_user.id), page=page, limit=limit
         )
         logger.info("action=transactions.list_by_account status=success")
         return [
@@ -91,13 +88,12 @@ def create_transaction_router(
 
     @transaction_router.get("/user/all")
     def get_transactions_for_user(
-        user_id: UUID,
         page: int = Query(1, ge=1),
         limit: int = Query(10, ge=1, le=100),
         current_user: User = Depends(get_current_user),
     ):
         transactions = transaction_service.get_transactions_by_user(
-            str(user_id), page=page, limit=limit
+            str(current_user.id), page=page, limit=limit
         )
         logger.info("action=transactions.list_by_user status=success")
         return [
@@ -114,7 +110,6 @@ def create_transaction_router(
     @transaction_router.put("/{transaction_id}")
     def update_transaction(
         transaction_id: UUID,
-        user_id: UUID,
         req: UpdateTransactionRequest,
         current_user: User = Depends(get_current_user),
     ):
@@ -124,7 +119,7 @@ def create_transaction_router(
             transaction_type=req.transaction_type,
             description=req.description,
             account_id=str(req.account_id),
-            user_id=str(user_id),
+            user_id=str(current_user.id),
         )
         logger.info("action=transactions.update status=success")
         return {"message": "transaction updated successfully"}
@@ -132,11 +127,10 @@ def create_transaction_router(
     @transaction_router.delete("/{transaction_id}", status_code=204)
     def delete_transaction(
         transaction_id: UUID,
-        user_id: UUID,
         current_user: User = Depends(get_current_user),
     ):
         transaction_service.deleteTransaction(
-            user_id=str(user_id),
+            user_id=str(current_user.id),
             transaction_id=str(transaction_id),
         )
         logger.info("action=transactions.delete status=success")

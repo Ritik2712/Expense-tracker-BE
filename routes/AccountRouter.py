@@ -29,7 +29,7 @@ def create_account_router(account_service: AccountService, orchestrator_service:
         req: CreateAccountRequest,
         user: User = Depends(get_current_user),
     ):
-        account = account_service.create_account(user.id, req.name)
+        account = account_service.create_account(str(user.id), req.name)
         logger.info("action=accounts.create status=success")
         return {
             "message": "account created successfully",
@@ -47,7 +47,7 @@ def create_account_router(account_service: AccountService, orchestrator_service:
         user: User = Depends(get_current_user),
     ):
         accounts = account_service.get_all_accounts_of_user(
-            user_id=user.id,
+            user_id=str(user.id),
             page=page,
             limit=limit,
         )
@@ -68,9 +68,9 @@ def create_account_router(account_service: AccountService, orchestrator_service:
         user: User = Depends(get_current_user),
     ):
         account_service.update_account(
-            user_id=user.id,
+            user_id=str(user.id),
             balance=req.balance,
-            account_id=account_id,
+            account_id=str(account_id),
             account_name=req.name,
         )
         logger.info("action=accounts.update status=success")
@@ -81,7 +81,7 @@ def create_account_router(account_service: AccountService, orchestrator_service:
         account_id: UUID,
         user: User = Depends(get_current_user),
     ):
-        account_service.deleteAccount(user.id, account_id)
+        account_service.deleteAccount(str(user.id), str(account_id))
         logger.info("action=accounts.delete status=success")
 
     return account_router

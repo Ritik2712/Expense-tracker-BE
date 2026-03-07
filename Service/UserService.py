@@ -84,9 +84,21 @@ class UserService:
 
                 rows = cur.fetchall()
 
-                if(not rows):
-                    raise UserNotFoundError("No")
                 return [
                     User(id=row[0], name=row[1], role=row[2])
                     for row in rows
                 ]
+
+    def count_users_by_role(self, role: str) -> int:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM users
+                    WHERE role = %s
+                    """,
+                    (role,),
+                )
+                row = cur.fetchone()
+                return int(row[0]) if row else 0

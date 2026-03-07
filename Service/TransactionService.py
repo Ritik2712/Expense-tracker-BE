@@ -232,6 +232,28 @@ class TransactionService:
                     transaction_type=row[4],
                 )
 
+    def get_all_transactions_admin(self) -> list[Transaction]:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, account_id, description, amount, transaction_type
+                    FROM transactions
+                    ORDER BY id
+                    """
+                )
+                rows = cur.fetchall()
+                return [
+                    Transaction(
+                        id=row[0],
+                        account_id=row[1],
+                        description=row[2],
+                        amount=row[3],
+                        transaction_type=row[4],
+                    )
+                    for row in rows
+                ]
+
     def delete_transaction_admin(self, transaction_id: str) -> None:
         with get_connection() as conn:
             with conn.cursor() as cur:

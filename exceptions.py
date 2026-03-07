@@ -98,3 +98,8 @@ class TokenNotProvide(AuthError):
 class RateLimitExceededError(AuthError):
     def __init__(self) -> None:
         super().__init__("Too many requests. Please try again later.")
+
+
+class DbPoolExhaustedError(Exception):
+    def __init__(self) -> None:
+        super().__init__("Database connection pool exhausted. Please retry.")

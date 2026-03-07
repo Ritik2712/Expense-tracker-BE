@@ -181,6 +181,27 @@ class AccountService:
                     balance=row[3],
                 )
 
+    def get_all_accounts_admin(self) -> list[Account]:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, name, user_id, balance
+                    FROM accounts
+                    ORDER BY id
+                    """
+                )
+                rows = cur.fetchall()
+                return [
+                    Account(
+                        id=row[0],
+                        name=row[1],
+                        user_id=row[2],
+                        balance=row[3],
+                    )
+                    for row in rows
+                ]
+
     def delete_account_admin(self, account_id: str) -> None:
         with get_connection() as conn:
             with conn.cursor() as cur:

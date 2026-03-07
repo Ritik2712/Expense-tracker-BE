@@ -1,4 +1,5 @@
 from psycopg2 import pool
+from psycopg2.pool import PoolError
 from contextlib import contextmanager
 
 import os
@@ -27,7 +28,11 @@ connection_pool = pool.SimpleConnectionPool(
 
 @contextmanager
 def get_connection():
-    conn = connection_pool.getconn()
+    try:
+        conn = connection_pool.getconn()
+    except PoolError:
+        from exceptions import DbPoolExhaustedError
+        raise DbPoolExhaustedError()
     try:
         yield conn
         conn.commit()

@@ -21,6 +21,7 @@ from exceptions import (
     InvalidTransaction,
     InvalidTransactionTypeError,
     InvalidUserType,
+    DbPoolExhaustedError,
     NoRoleError,
     RateLimitExceededError,
     TokenNotProvide,
@@ -241,6 +242,12 @@ async def handle_rate_limit_exceeded(request: Request, exc: RateLimitExceeded):
     custom_exc = RateLimitExceededError()
     _log_exception(request, 429, str(custom_exc))
     return JSONResponse(status_code=429, content=_error_payload(str(custom_exc)))
+
+
+@app.exception_handler(DbPoolExhaustedError)
+async def handle_db_pool_exhausted(request: Request, exc: DbPoolExhaustedError):
+    _log_exception(request, 503, str(exc))
+    return JSONResponse(status_code=503, content=_error_payload(str(exc)))
 
 
 @app.exception_handler(HTTPException)
