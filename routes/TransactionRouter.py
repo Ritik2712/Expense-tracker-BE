@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from Service.TransactionService import TransactionService
 from Schemas.User import User
 from utils.auth import get_current_user
+from utils.cache import delete_by_prefix, delete_cache
 from utils.logging_config import get_logger
 
 
@@ -129,10 +130,14 @@ def create_transaction_router(
         transaction_id: UUID,
         current_user: User = Depends(get_current_user),
     ):
-        transaction_service.deleteTransaction(
+        account_id = transaction_service.deleteTransaction(
             user_id=str(current_user.id),
             transaction_id=str(transaction_id),
         )
         logger.info("action=transactions.delete status=success")
+        delete_cache(f"admin:transactions:{transaction_id}")
+        delete_by_prefix("admin:transactions:list:")
+        delete_cache(f"admin:accounts:{account_id}")
+        delete_by_prefix("admin:accounts:list:")
 
     return transaction_router

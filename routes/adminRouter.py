@@ -7,6 +7,7 @@ from Service.TransactionService import TransactionService
 from Service.UserService import UserService
 from Schemas.User import User
 from utils.auth import get_current_user, require_role
+from utils.cache import delete_by_prefix, delete_cache, get_cache, set_cache
 from utils.logging_config import get_logger
 
 
@@ -29,13 +30,19 @@ def create_admin_router(
         user_id: UUID,
         current_user: User = Depends(get_current_user),
     ):
+        cache_key = f"admin:users:{user_id}"
+        cached = get_cache(cache_key)
+        if cached:
+            return cached
         user = user_service.get_user(str(user_id))
         logger.info(
             "action=admin.users.get_one status=success admin_user_id=%s target_user_id=%s",
             current_user.id,
             user.id,
         )
-        return {"user": {"id": user.id, "name": user.name, "role": user.role}}
+        response = {"user": {"id": user.id, "name": user.name, "role": user.role}}
+        set_cache(cache_key, response, ttl_seconds=60)
+        return response
 
     @admin_router.delete("/users/{user_id}", status_code=204)
     def delete_user(
@@ -64,6 +71,10 @@ def create_admin_router(
             current_user.id,
             target_user.id,
         )
+        delete_cache(f"admin:users:{user_id}")
+        delete_by_prefix("admin:users:list:")
+        delete_by_prefix("admin:accounts:")
+        delete_by_prefix("admin:transactions:")
 
     @admin_router.get("/users")
     def get_all_users(
@@ -71,6 +82,10 @@ def create_admin_router(
         limit: int = Query(10, ge=1, le=100),
         current_user: User = Depends(get_current_user),
     ):
+        cache_key = f"admin:users:list:{page}:{limit}"
+        cached = get_cache(cache_key)
+        if cached:
+            return cached
         allusers = user_service.get_all_users(page=page, limit=limit)
         logger.info(
             "action=admin.users.list status=success admin_user_id=%s page=%s limit=%s count=%s",
@@ -79,23 +94,29 @@ def create_admin_router(
             limit,
             len(allusers),
         )
-        return [
+        response = [
             {"id": user.id, "name": user.name, "role": user.role}
             for user in allusers
         ]
+        set_cache(cache_key, response, ttl_seconds=60)
+        return response
 
     @admin_router.get("/accounts/{account_id}")
     def get_account(
         account_id: UUID,
         current_user: User = Depends(get_current_user),
     ):
+        cache_key = f"admin:accounts:{account_id}"
+        cached = get_cache(cache_key)
+        if cached:
+            return cached
         account = account_service.get_account_admin(str(account_id))
         logger.info(
             "action=admin.accounts.get_one status=success admin_user_id=%s target_account_id=%s",
             current_user.id,
             account.id,
         )
-        return {
+        response = {
             "account": {
                 "id": account.id,
                 "name": account.name,
@@ -103,18 +124,26 @@ def create_admin_router(
                 "balance": account.balance,
             }
         }
+        set_cache(cache_key, response, ttl_seconds=60)
+        return response
 
     @admin_router.get("/accounts")
     def get_all_accounts(
+        page: int = Query(1, ge=1),
+        limit: int = Query(10, ge=1, le=100),
         current_user: User = Depends(get_current_user),
     ):
-        accounts = account_service.get_all_accounts_admin()
+        cache_key = f"admin:accounts:list:{page}:{limit}"
+        cached = get_cache(cache_key)
+        if cached:
+            return cached
+        accounts = account_service.get_all_accounts_admin(page=page, limit=limit)
         logger.info(
             "action=admin.accounts.list status=success admin_user_id=%s count=%s",
             current_user.id,
             len(accounts),
         )
-        return [
+        response = [
             {
                 "id": account.id,
                 "name": account.name,
@@ -123,6 +152,8 @@ def create_admin_router(
             }
             for account in accounts
         ]
+        set_cache(cache_key, response, ttl_seconds=60)
+        return response
 
     @admin_router.delete("/accounts/{account_id}", status_code=204)
     def delete_account(
@@ -135,19 +166,26 @@ def create_admin_router(
             current_user.id,
             str(account_id),
         )
+        delete_cache(f"admin:accounts:{account_id}")
+        delete_by_prefix("admin:accounts:list:")
+        delete_by_prefix("admin:transactions:")
 
     @admin_router.get("/transactions/{transaction_id}")
     def get_transaction(
         transaction_id: UUID,
         current_user: User = Depends(get_current_user),
     ):
+        cache_key = f"admin:transactions:{transaction_id}"
+        cached = get_cache(cache_key)
+        if cached:
+            return cached
         tx = transaction_service.get_transaction_admin(str(transaction_id))
         logger.info(
             "action=admin.transactions.get_one status=success admin_user_id=%s target_transaction_id=%s",
             current_user.id,
             tx.id,
         )
-        return {
+        response = {
             "transaction": {
                 "id": tx.id,
                 "amount": tx.amount,
@@ -156,18 +194,29 @@ def create_admin_router(
                 "account_id": tx.account_id,
             }
         }
+        set_cache(cache_key, response, ttl_seconds=60)
+        return response
 
     @admin_router.get("/transactions")
     def get_all_transactions(
+        page: int = Query(1, ge=1),
+        limit: int = Query(10, ge=1, le=100),
         current_user: User = Depends(get_current_user),
     ):
-        transactions = transaction_service.get_all_transactions_admin()
+        cache_key = f"admin:transactions:list:{page}:{limit}"
+        cached = get_cache(cache_key)
+        if cached:
+            return cached
+        transactions = transaction_service.get_all_transactions_admin(
+            page=page,
+            limit=limit,
+        )
         logger.info(
             "action=admin.transactions.list status=success admin_user_id=%s count=%s",
             current_user.id,
             len(transactions),
         )
-        return [
+        response = [
             {
                 "id": tx.id,
                 "amount": tx.amount,
@@ -177,17 +226,24 @@ def create_admin_router(
             }
             for tx in transactions
         ]
+        set_cache(cache_key, response, ttl_seconds=60)
+        return response
 
     @admin_router.delete("/transactions/{transaction_id}", status_code=204)
     def delete_transaction(
         transaction_id: UUID,
         current_user: User = Depends(get_current_user),
     ):
+        tx = transaction_service.get_transaction_admin(str(transaction_id))
         transaction_service.delete_transaction_admin(str(transaction_id))
         logger.info(
             "action=admin.transactions.delete status=success admin_user_id=%s target_transaction_id=%s",
             current_user.id,
             str(transaction_id),
         )
+        delete_cache(f"admin:transactions:{transaction_id}")
+        delete_by_prefix("admin:transactions:list:")
+        delete_cache(f"admin:accounts:{tx.account_id}")
+        delete_by_prefix("admin:accounts:list:")
 
     return admin_router

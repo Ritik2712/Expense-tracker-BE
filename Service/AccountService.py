@@ -181,7 +181,8 @@ class AccountService:
                     balance=row[3],
                 )
 
-    def get_all_accounts_admin(self) -> list[Account]:
+    def get_all_accounts_admin(self, page: int = 1, limit: int = 10) -> list[Account]:
+        offset = (page - 1) * limit
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -189,7 +190,10 @@ class AccountService:
                     SELECT id, name, user_id, balance
                     FROM accounts
                     ORDER BY id
+                    LIMIT %s OFFSET %s
                     """
+                    ,
+                    (limit, offset),
                 )
                 rows = cur.fetchall()
                 return [

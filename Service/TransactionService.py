@@ -191,7 +191,7 @@ class TransactionService:
         self,
         user_id: str,
         transaction_id: str,
-    ) -> None:
+    ) -> str:
         with get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
@@ -209,6 +209,7 @@ class TransactionService:
                     if not row:
                         raise TransactionNotFoundError(transaction_id)
                     self._account_service.update_account_balance(-row[2],row[1],row[3],user_id,cur)
+                    return row[1]
 
     def get_transaction_admin(self, transaction_id: str) -> Transaction:
         with get_connection() as conn:
@@ -232,7 +233,8 @@ class TransactionService:
                     transaction_type=row[4],
                 )
 
-    def get_all_transactions_admin(self) -> list[Transaction]:
+    def get_all_transactions_admin(self, page: int = 1, limit: int = 10) -> list[Transaction]:
+        offset = (page - 1) * limit
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -240,7 +242,10 @@ class TransactionService:
                     SELECT id, account_id, description, amount, transaction_type
                     FROM transactions
                     ORDER BY id
+                    LIMIT %s OFFSET %s
                     """
+                    ,
+                    (limit, offset),
                 )
                 rows = cur.fetchall()
                 return [

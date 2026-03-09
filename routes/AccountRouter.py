@@ -6,6 +6,7 @@ from Service.AccountService import AccountService
 from Service.OrchestratorService import OrchestratorService
 from Schemas.User import User
 from utils.auth import get_current_user
+from utils.cache import delete_by_prefix, delete_cache
 from utils.logging_config import get_logger
 
 
@@ -83,5 +84,8 @@ def create_account_router(account_service: AccountService, orchestrator_service:
     ):
         account_service.deleteAccount(str(user.id), str(account_id))
         logger.info("action=accounts.delete status=success")
+        delete_cache(f"admin:accounts:{account_id}")
+        delete_by_prefix("admin:accounts:list:")
+        delete_by_prefix("admin:transactions:")
 
     return account_router
