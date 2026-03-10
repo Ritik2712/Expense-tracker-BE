@@ -48,6 +48,7 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://expense-tracker-fe-5zrv.onrender.com"
 ]
 
 user_service = UserService()
