@@ -8,9 +8,11 @@ This is a FastAPI backend for an expense tracking system with JWT-based authenti
 - Role-based access (`user`, `admin`)
 - Account CRUD operations for authenticated users
 - Transaction CRUD operations linked to accounts
-- Admin endpoints to inspect and manage users/accounts/transactions
+- Admin endpoints to inspect and manage users, accounts, and transactions
 - Rate limiting on auth endpoints
 - Centralized exception handling and structured logging
+
+Frontend is intentionally out of scope in this repo.
 
 ## Tech Stack
 - FastAPI
@@ -19,27 +21,30 @@ This is a FastAPI backend for an expense tracking system with JWT-based authenti
 - JWT (`python-jose`)
 - Bcrypt (password hashing)
 - SlowAPI (rate limiting)
+- Redis (optional cache)
 - Docker
 - Uvicorn
 
-## Architecture Summary
-Request flow follows a layered structure:
+## Architecture
+Layered flow:
 
 `Router -> Service -> DB`
 
-- Router Layer (`/routes`):
-  - HTTP request/response handling
-  - request validation
-  - auth dependency wiring
-- Service Layer (`/Service`):
-  - business logic
-  - orchestration
-  - SQL execution using DB utility
-- DB Utility (`/utils/db.py`):
-  - connection pool management
-  - transaction commit/rollback handling
+Responsibility split:
+- Router Layer (`/routes`) handles HTTP, validation, and auth dependencies.
+- Service Layer (`/Service`) holds business logic and orchestration.
+- DB Utility (`/utils/db.py`) manages connection pooling and transaction handling.
 
-This separation keeps API concerns, business rules, and persistence concerns isolated.
+Simple diagram:
+
+```mermaid
+flowchart LR
+  "Client (Frontend/Postman)" --> "FastAPI Router"
+  "FastAPI Router" --> "Service Layer"
+  "Service Layer" --> "PostgreSQL"
+  "FastAPI Router" --> "Auth & RBAC"
+  "Auth & RBAC" --> "JWT"
+```
 
 ## Setup (Local)
 
@@ -67,6 +72,9 @@ DB_PORT=5432
 SECRET_KEY=change-this-super-secret-key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+# Optional
+REDIS_URL=redis://localhost:6379/0
 ```
 
 ### 4. Apply schema
@@ -122,7 +130,6 @@ docker run -d --name expense-tracker-be \
 
 ## Environment Variables
 Required:
-
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
@@ -135,55 +142,84 @@ Required:
 Optional:
 - `APP_PORT` (default `8000`)
 - `LOG_LEVEL` (default `INFO`)
+- `REDIS_URL` (enables admin caching)
 
-## Auth Flow
+## API Overview
 
-### Login -> access token
-1. Client calls `POST /auth/login` with name/password.
-2. Server verifies credentials.
-3. Server returns JWT access token.
-
-### Use Bearer token
-Pass token in header:
-
-```http
-Authorization: Bearer <access_token>
-```
-
-### 401 vs 403
-- `401 Unauthorized`:
-  - missing token
-  - invalid/expired token
-  - invalid credentials
-- `403 Forbidden`:
-  - valid token, but user does not have permission for that action/role
-
-## API Endpoints
-
-### Auth
+Auth:
 - `POST /auth` - register user
 - `POST /auth/admin` - register admin
 - `POST /auth/login` - login
 
-### Users
+Users:
 - `GET /users/me` - current user profile
 - `PUT /users/update/{id}` - update own user
 - `DELETE /users/{id}` - delete own user
 
-### Accounts
+Accounts:
 - `POST /accounts` - create account
 - `GET /accounts?page=1&limit=10` - list own accounts
 - `PUT /accounts/{account_id}` - update own account
 - `DELETE /accounts/{account_id}` - delete own account
 
-### Admin
+Transactions:
+- `POST /transactions` - create transaction
+- `GET /transactions?account_id=<uuid>&page=1&limit=10` - list by account
+- `GET /transactions/{transaction_id}?account_id=<uuid>` - get one
+- `GET /transactions/user/all?page=1&limit=10` - list by user
+- `PUT /transactions/{transaction_id}` - update transaction
+- `DELETE /transactions/{transaction_id}` - delete transaction
+
+Admin:
+- `GET /admin/users?page=1&limit=10`
 - `GET /admin/users/{user_id}`
 - `DELETE /admin/users/{user_id}`
-- `GET /admin/users?page=1&limit=10`
+- `GET /admin/accounts?page=1&limit=10`
 - `GET /admin/accounts/{account_id}`
 - `DELETE /admin/accounts/{account_id}`
+- `GET /admin/transactions?page=1&limit=10`
 - `GET /admin/transactions/{transaction_id}`
 - `DELETE /admin/transactions/{transaction_id}`
+
+## Auth Flow
+Login -> access token:
+1. Client calls `POST /auth/login` with name/password.
+2. Server verifies credentials.
+3. Server returns JWT access token.
+
+Use Bearer token:
+```http
+Authorization: Bearer <access_token>
+```
+
+401 vs 403:
+- `401 Unauthorized` means missing/invalid token or invalid credentials.
+- `403 Forbidden` means valid token but insufficient permission.
+
+## Interview Narrative Preparation
+
+System Architecture:
+- Client -> FastAPI Router -> Service Layer -> PostgreSQL
+- Auth and RBAC enforced via dependencies and role checks
+
+Auth Flow:
+- JWT generated on login
+- Token validated on each protected route
+- RBAC enforced with `require_role("admin")`
+
+Ownership Model:
+- Users can only access or mutate their own accounts and transactions
+- Admin can access and delete across users
+
+Failure Handling:
+- Centralized exception handlers with consistent error response shape
+- No raw tracebacks in responses
+- Structured logging for key actions and failures
+
+Performance Thinking:
+- Pagination for list routes
+- Connection pooling via `psycopg2.pool.SimpleConnectionPool`
+- Redis cache for admin list/detail routes with explicit invalidation
 
 ## Deployment Link
 Live URL: `TBD`
