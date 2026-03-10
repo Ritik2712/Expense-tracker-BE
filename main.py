@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -41,8 +42,6 @@ from utils.rate_limiter import limiter
 
 setup_logging()
 logger = get_logger(__name__)
-app = FastAPI()
-app.state.limiter = limiter
 
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -51,14 +50,6 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
-)
-
 user_service = UserService()
 account_service = AccountService()
 auth_service = AuthService()
@@ -66,7 +57,6 @@ transaction_service = TransactionService(account_service)
 orchestrator_service = OrchestratorService(user_service,account_service,transaction_service)
 
 
-@app.on_event("startup")
 def apply_schema_on_startup() -> None:
     schema_path = Path(__file__).resolve().parent / "schema.sql"
     if not schema_path.exists():
@@ -79,6 +69,23 @@ def apply_schema_on_startup() -> None:
             cur.execute(sql)
     logger.info("database schema applied successfully path=%s", schema_path)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    apply_schema_on_startup()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 def _error_payload(message: str) -> dict:
     return {"detail": {"message": message}}

@@ -51,7 +51,7 @@ def create_user_router(user_service: UserService, orchestrator_service: Orchestr
     ):
         if str(id) != current_user.id:
             raise HTTPException(
-                status_code=403,
+                status_code=404,
                 detail={"message": "You can't update this user"},
             )
         updated_user = user_service.update_user(str(id), req.name)
@@ -66,7 +66,7 @@ def create_user_router(user_service: UserService, orchestrator_service: Orchestr
     ):
         if str(id) != current_user.id:
             raise HTTPException(
-                status_code=403,
+                status_code=404,
                 detail={"message": "You can't delete this user"},
             )
         user_service.delete_user(str(id))
